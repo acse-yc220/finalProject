@@ -162,7 +162,7 @@ def plotResult(dataset, result):
     plt.show()
 
 def kmeans_param(dataset):
-    tuned_parameters = [{'n_clusters':np.arange(2,8,1),'max_iter':np.arange(300,800,100), 'random_state':0}]
+    tuned_parameters = [{'n_clusters':np.arange(2,8,1),'max_iter':np.arange(300,800,100), 'random_state':[0]}]
     gsearch = GridSearchCV(estimator = KMeans(),param_grid = tuned_parameters,cv=5)
     gsearch.fit(dataset)
     return gsearch.best_params_
