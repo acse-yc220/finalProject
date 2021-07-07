@@ -8,6 +8,9 @@ import xlrd
 from matplotlib.colors import LogNorm
 from sklearn.preprocessing import StandardScaler
 import hdbscan
+from sklearn.cluster import KMeans
+from sklearn import metrics
+from sklearn.model_selection import GridSearchCV
 
 def plot_input(fig,axarr,i,j,value,color,label,vmin=np.nan,vmax=np.nan):
     if np.isnan(vmin):
@@ -139,35 +142,94 @@ def randCent(dataset, k):
          centroids[:,i] = data_min + data_range * np.random.rand(k, 1)
      return centroids
 
-def kMeans(dataset, k, distMeans =distEclud, createCent = randCent):
-     samples_num = dataset.shape[0]
-     clusterAssment = np.mat(np.zeros((samples_num,2)))    
-     centroids = createCent(dataset, k)
-     clusterChanged = True   
-     while clusterChanged:
-         clusterChanged = False
-         for i in range(samples_num):
-                minDist = np.inf
-                minIndex = -1
-                for j in range(k):
-                    distJI = distMeans(centroids[j,:], dataset[i:])
-                    if distJI < minDist:
-                        minDist = distJI
-                        minIndex = j
-                if clusterAssment[i,0] != minIndex: 
-                    clusterChanged = True
-                clusterAssment[i,:] = minIndex,minDist**2   
-         clusterAssment = np.array(clusterAssment)
-         for cent in range(k):  
-             ptsInClust = dataset[np.nonzero(clusterAssment[:,0] == cent)[0]]  
-             centroids[cent,:] = np.mean(ptsInClust, axis = 0)  
-     return centroids, clusterAssment
+def kMeans(n, dataset,iter=300):
+    cluster_k = KMeans(n_clusters=n, max_iter=iter,random_state=0).fit(dataset)
+    result_k = cluster_k.labels_
+    return result_k
+
+def Hdbscan(n, dataset):
+    cluster_h = hdbscan.HDBSCAN(min_cluster_size=n, gen_min_span_tree=True)
+    cluster_h.fit(dataset)
+    result_h = cluster_h.labels_
+    return result_h
+
+def plotResult(dataset, result):
+    col = ['HotPink','Aqua','Chartreuse','yellow','red','blue','green','grey','orange'] 
+    for i in range(dataset.shape[0]):
+        plt.scatter(dataset[i][0],dataset[i][1],color=col[result[i]])
+
+# #plt.scatter(centroids[i][0],centroids[i][1],linewidth=3,s=300,marker='+',color='black')
+    plt.show()
+
+def kmeans_param(dataset):
+    tuned_parameters = [{'n_clusters':np.arange(2,8,1),'max_iter':np.arange(300,800,100), 'random_state':0}]
+    gsearch = GridSearchCV(estimator = KMeans(),param_grid = tuned_parameters,cv=5)
+    gsearch.fit(dataset)
+    return gsearch.best_params_
+
+def hdbscan_param(dataset):
+    score = 10
+    n = 0
+    for i in range(2,8):
+        result_h = Hdbscan(i, dataset)
+        dbscore = calculateDB(dataset,result_h)
+        if dbscore < score:
+            score = dbscore
+            n = i
+    return n
+
+def calculateAri(result1, result2):
+    ari = metrics.adjusted_rand_score(result1,result2)
+    return ari
+
+def calculateAmi(result1, result2):
+    ami = metrics.adjusted_mutual_info_score(result1, result2)
+    return ami
+
+def calculateVm(result1, result2):
+    vm = metrics.v_measure_score(result1, result2) 
+    return vm
+
+def calculateSC(dataset, result):
+    sc = metrics.silhouette_score(dataset, result, metric='euclidean')
+    return sc
+
+def calculateCH(dataset, result):
+    ch = metrics.calinski_harabasz_score(dataset, result)
+    return ch
+
+def calculateDB(dataset, result):
+    dbscore = metrics.davies_bouldin_score(dataset, result)
+    return dbscore
+# def kMeans(dataset, k, distMeans =distEclud, createCent = randCent):
+#      samples_num = dataset.shape[0]
+#      clusterAssment = np.mat(np.zeros((samples_num,2)))    
+#      centroids = createCent(dataset, k)
+#      clusterChanged = True   
+#      while clusterChanged:
+#          clusterChanged = False
+#          for i in range(samples_num):
+#                 minDist = np.inf
+#                 minIndex = -1
+#                 for j in range(k):
+#                     distJI = distMeans(centroids[j,:], dataset[i:])
+#                     if distJI < minDist:
+#                         minDist = distJI
+#                         minIndex = j
+#                 if clusterAssment[i,0] != minIndex: 
+#                     clusterChanged = True
+#                 clusterAssment[i,:] = minIndex,minDist**2   
+#          clusterAssment = np.array(clusterAssment)
+#          for cent in range(k):  
+#              ptsInClust = dataset[np.nonzero(clusterAssment[:,0] == cent)[0]]  
+#              centroids[cent,:] = np.mean(ptsInClust, axis = 0)  
+#      return centroids, clusterAssment
 
 
-def HDBSCAN(dataset):
-    clusterer = hdbscan.HDBSCAN(min_cluster_size=5, gen_min_span_tree=True)
-    clusterer.fit(dataset)
-    
+# def HDBSCAN(dataset):
+#     clusterer = hdbscan.HDBSCAN(min_cluster_size=5, gen_min_span_tree=True)
+#     clusterer.fit(dataset)
+#     print(clusterer.labels_)
 
 
 # def showCluster(dataSet, k, centroids, clusterAssment):
@@ -206,12 +268,19 @@ data = np.load('C:/Users/12928/Desktop/SyntheticDatasets/Model5b/output_fields_s
 # show_data(data_list,3,2)
 
 #data_list[3]=np.clip(data_list[3],None,2)
-# new_data,data_noNan,remove_list = removenans(data)
+#HDBSCAN(data_noNan)
 #showDistribution(new_data)
 # crossplot(new_data[:,0],new_data[:,1])
 
 
-# data_preprocessing = preprocessing(new_data)
+#data_preprocessing = preprocessing(data_noNan)
+
+
+
+
+
+
+
 # showDistribution(data_preprocessing)
 
 
@@ -242,15 +311,11 @@ data = np.load('C:/Users/12928/Desktop/SyntheticDatasets/Model5b/output_fields_s
 # plt.show()  
 
 
-# centroids,clusterAssment = kMeans(data_noNan,2)
-# print(clusterAssment)
+
 # col = ['HotPink','Aqua','Chartreuse','yellow','red','blue','green','grey','orange'] 
 # for i in range(data_noNan.shape[0]):
-#     plt.scatter(data_noNan[i][0],data_noNan[i][1],color=col[np.int(clusterAssment[i][0])-1])
+#     plt.scatter(data_noNan[i][0],data_noNan[i][1],color=col[cluster_h.labels_[i]])
 
-# #plt.scatter(centroids[i][0],centroids[i][1],linewidth=3,s=300,marker='+',color='black')
+# # #plt.scatter(centroids[i][0],centroids[i][1],linewidth=3,s=300,marker='+',color='black')
 # plt.show()
-# print(myCentroids)
-# print(clusterAssment)
-# showCluster(data_new, 4, centroids, clusterAssment)
 
