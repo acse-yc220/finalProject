@@ -11,6 +11,8 @@ import hdbscan
 from sklearn.cluster import KMeans
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
+from DBCV import DBCV
+from scipy.spatial.distance import euclidean
 
 def plot_input(fig,axarr,i,j,value,color,label,vmin=np.nan,vmax=np.nan):
     if np.isnan(vmin):
@@ -62,8 +64,7 @@ def removenans(dataset):
     new_data = np.array(new_data).reshape(-1,8)
     nan_list = np.isnan(new_data).any(axis=1)
     data_noNan = new_data[~nan_list,:]
-    remove_list = new_data[nan_list,:]
-    return new_data,data_noNan,remove_list
+    return new_data,data_noNan,nan_list
 
 #def restorenans(dataset,nanarray):
 # - paste removed elements to back of array
@@ -153,10 +154,20 @@ def Hdbscan(n, dataset):
     result_h = cluster_h.labels_
     return result_h
 
+def output_2D(result, nan_list):
+    output = np.zeros(len(nan_list))
+    output[~nan_list] = result
+    output[nan_list] = -1
+    print(len(output))
+    output = output.reshape(len(data['z']),len(data['x']))
+    print(output.shape)
+    return output
+
 def plotResult(dataset, result):
-    col = ['HotPink','Aqua','Chartreuse','yellow','red','blue','green','grey','orange'] 
-    for i in range(dataset.shape[0]):
-        plt.scatter(dataset[i][0],dataset[i][1],color=col[result[i]])
+    x,y = np.meshgrid(dataset['x'],dataset['z'])
+    plt.scatter(x,y,c=result,cmap=plt.cm.RdYlBu)
+    
+    plt.gca().invert_yaxis()
 
 # #plt.scatter(centroids[i][0],centroids[i][1],linewidth=3,s=300,marker='+',color='black')
     plt.show()
@@ -172,7 +183,8 @@ def hdbscan_param(dataset):
     n = 0
     for i in range(2,8):
         result_h = Hdbscan(i, dataset)
-        dbscore = calculateDB(dataset,result_h)
+        dbscore = DBCV(dataset, result_h, dist_function=euclidean)
+        print(dbscore)
         if dbscore < score:
             score = dbscore
             n = i
@@ -201,6 +213,13 @@ def calculateCH(dataset, result):
 def calculateDB(dataset, result):
     dbscore = metrics.davies_bouldin_score(dataset, result)
     return dbscore
+
+def plotInputData(input_data):
+    x,y = np.meshgrid(input_data['x'],input_data['z'])
+    plt.scatter(x,y,c=input_data['classes'],cmap=plt.cm.RdYlBu)
+    plt.gca().invert_yaxis()
+    plt.show()
+
 # def kMeans(dataset, k, distMeans =distEclud, createCent = randCent):
 #      samples_num = dataset.shape[0]
 #      clusterAssment = np.mat(np.zeros((samples_num,2)))    
@@ -254,6 +273,16 @@ def calculateDB(dataset, result):
 # 	plt.show()
 
 data = np.load('C:/Users/12928/Desktop/SyntheticDatasets/Model5b/output_fields_smooth.npz')
+# print(len(data['x']))
+# new_data,data_noNan,nan_list = removenans(data)
+# data_preprocessing = preprocessing(data_noNan) 
+# result_k = kMeans(4, data_preprocessing[:,:-2])
+# output_k = output_2D(result_k,nan_list)
+# plotResult(data, output_k)
+# result_h = Hdbscan(4, data_preprocessing)
+# dbscore = DBCV(data_preprocessing, result_h, dist_function=euclidean)
+# print(dbscore)
+
 #print(data[data.files[0]].shape)
 #data_list = loadData(data)
 # data_inf = np.isinf(data_list[3])
