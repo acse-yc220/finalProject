@@ -1,4 +1,6 @@
 from os import remove
+from hdbscan import validity
+from matplotlib import colors
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -152,7 +154,8 @@ def Hdbscan(n, dataset):
     cluster_h = hdbscan.HDBSCAN(min_cluster_size=n, gen_min_span_tree=True)
     cluster_h.fit(dataset)
     result_h = cluster_h.labels_
-    return result_h
+    score = cluster_h.relative_validity_
+    return result_h, score
 
 def output_2D(result, nan_list):
     output = np.zeros(len(nan_list))
@@ -173,22 +176,78 @@ def plotResult(dataset, result):
     plt.show()
 
 def kmeans_param(dataset):
-    tuned_parameters = [{'n_clusters':np.arange(2,8,1),'max_iter':np.arange(300,800,100), 'random_state':[0]}]
+    tuned_parameters = [{'n_clusters':np.arange(2,10,1),'max_iter':np.arange(300,800,100), 'random_state':[0]}]
     gsearch = GridSearchCV(estimator = KMeans(),param_grid = tuned_parameters,cv=5)
     gsearch.fit(dataset)
     return gsearch.best_params_
 
+
+def calculateCH(dataset, result):
+    ch = metrics.calinski_harabasz_score(dataset, result)
+    return ch
+
+def calculateSC(dataset, result):
+    sc = metrics.silhouette_score(dataset, result, metric='euclidean')
+    return sc
+
+def Kmeans_cluster_ch(dataset):
+    ch = []
+    for i in range(2,10):
+        result_k = kMeans(i,dataset)
+        ch.append(calculateCH(dataset,result_k))
+    x = range(2,10,1)
+    plot_validation(x,ch,"Cluster Size","CH")
+
+def Kmeans_cluster_sc(dataset):
+    sc = []
+    for i in range(2,10):
+        result_k = kMeans(i,dataset)
+        sc.append(calculateSC(dataset, result_k))
+    x = range(2,10,1)
+    plot_validation(x,sc,"Cluster Size","SC")
+
+def Kmeans_iter_ch(dataset):
+    ch = []
+    for i in range(300,800,100):
+        result_k = kMeans(9,dataset,i)
+        ch.append(calculateCH(dataset,result_k))
+    x = range(300,800,100)
+    plot_validation(x,ch,"Max Iteration","CH")
+
+def Kmeans_iter_sc(dataset):
+    sc = []
+    for i in range(300,800,100):
+        result_k = kMeans(9,dataset,i)
+        sc.append(calculateSC(dataset,result_k))
+    x = range(300,800,100)
+    plot_validation(x,sc,"Max Iteration","SC")
+
+def plot_validation(x,y,x_label,y_label):
+    plt.plot(x,y,color='b')
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.title(x_label+" - "+y_label)
+    plt.show()
+
+
+
 def hdbscan_param(dataset):
-    score = 10
+    score = 0
     n = 0
-    for i in range(2,8):
-        result_h = Hdbscan(i, dataset)
-        dbscore = DBCV(dataset, result_h, dist_function=euclidean)
-        print(dbscore)
-        if dbscore < score:
-            score = dbscore
+    for i in range(2,10):
+        result_h, validity_score = Hdbscan(i, dataset)
+        if validity_score > score:
+            score = validity_score
             n = i
     return n
+
+def hdbscan_cluster(dataset):
+    score = []
+    for i in range(2,10):
+        result_h, validity_score = Hdbscan(i, dataset)
+        score.append(validity_score)
+    x = range(2,10,1)
+    plot_validation(x,score,"Min Cluster Size","Relative Validity")
 
 def calculateAri(result1, result2):
     ari = metrics.adjusted_rand_score(result1,result2)
@@ -201,18 +260,6 @@ def calculateAmi(result1, result2):
 def calculateVm(result1, result2):
     vm = metrics.v_measure_score(result1, result2) 
     return vm
-
-def calculateSC(dataset, result):
-    sc = metrics.silhouette_score(dataset, result, metric='euclidean')
-    return sc
-
-def calculateCH(dataset, result):
-    ch = metrics.calinski_harabasz_score(dataset, result)
-    return ch
-
-def calculateDB(dataset, result):
-    dbscore = metrics.davies_bouldin_score(dataset, result)
-    return dbscore
 
 def plotInputData(input_data):
     x,y = np.meshgrid(input_data['x'],input_data['z'])
@@ -279,7 +326,6 @@ data = np.load('C:/Users/12928/Desktop/SyntheticDatasets/Model5b/output_fields_s
 # result_k = kMeans(4, data_preprocessing[:,:-2])
 # output_k = output_2D(result_k,nan_list)
 # plotResult(data, output_k)
-# result_h = Hdbscan(4, data_preprocessing)
 # dbscore = DBCV(data_preprocessing, result_h, dist_function=euclidean)
 # print(dbscore)
 
