@@ -24,11 +24,16 @@ def plot_input(fig,axarr,i,j,value,color,label,vmin=np.nan,vmax=np.nan):
     a=axarr[i][j].imshow(value, extent=(np.amin(data['x']), np.amax(data['x']), 
          np.amax(data['z']),np.amin(data['z'])), vmin=vmin, vmax=vmax,
         cmap=color)
+    axarr[i][j].set_xlabel('x')
+    axarr[i][j].set_ylabel('z')
     cb = fig.colorbar(a,ax=axarr[i][j])
     cb.set_label(label)
 
 
 def show_data(dataset,nr,nc):
+    for i in range(len(dataset)):
+        data_inf = np.isinf(dataset[i])
+        dataset[i][data_inf] = np.nan
     fig, axarr = plt.subplots(nr, nc, figsize=(15, 15)) # nr is the number of rows
                                                         # nc is the number of columns
     plot_input(fig,axarr,0,0,dataset[0],cm.viridis_r,'Vp(m/s)')
@@ -87,7 +92,6 @@ def preprocessing(dataset):
     # data_preprocessing[1]=np.clip(data_preprocessing[1],None,2)
     # data_preprocessing[3]=np.clip(data_preprocessing[3],None,2)
     data_preprocessing = np.array(data_preprocessing).T
-    print(data_preprocessing.shape)
     return data_preprocessing
     # for i in range(len(dataset.files)-2):
     #     # print(np.isnan(dataset[dataset.files[i]]))
@@ -103,6 +107,7 @@ def preprocessing(dataset):
     # return data_preprocessing
 
 def showDistribution(dataset):
+    dataset[:,3]=np.clip(dataset[:,3],None,2)
     for i in range(dataset.shape[1]):
         ax = plt.subplot(3,2,i+1)
         data_distribution = dataset[:,i]
@@ -145,13 +150,13 @@ def randCent(dataset, k):
          centroids[:,i] = data_min + data_range * np.random.rand(k, 1)
      return centroids
 
-def kMeans(n, dataset,iter=300):
+def kMeans(n, dataset,iter=1000):
     cluster_k = KMeans(n_clusters=n, max_iter=iter,random_state=0).fit(dataset)
     result_k = cluster_k.labels_
     return result_k
 
-def Hdbscan(n, dataset):
-    cluster_h = hdbscan.HDBSCAN(min_cluster_size=n, gen_min_span_tree=True)
+def Hdbscan(dataset, min_size = 4,min_sample=10):
+    cluster_h = hdbscan.HDBSCAN(min_cluster_size=min_size, min_samples=min_sample, gen_min_span_tree=True)
     cluster_h.fit(dataset)
     result_h = cluster_h.labels_
     score = cluster_h.relative_validity_
@@ -160,10 +165,8 @@ def Hdbscan(n, dataset):
 def output_2D(result, nan_list):
     output = np.zeros(len(nan_list))
     output[~nan_list] = result
-    output[nan_list] = -1
-    print(len(output))
+    output[nan_list] = -2
     output = output.reshape(len(data['z']),len(data['x']))
-    print(output.shape)
     return output
 
 def plotResult(dataset, result):
@@ -176,7 +179,7 @@ def plotResult(dataset, result):
     plt.show()
 
 def kmeans_param(dataset):
-    tuned_parameters = [{'n_clusters':np.arange(2,10,1),'max_iter':np.arange(300,800,100), 'random_state':[0]}]
+    tuned_parameters = [{'n_clusters':np.arange(5,15,1),'max_iter':np.arange(500,1000,100), 'random_state':[0]}]
     gsearch = GridSearchCV(estimator = KMeans(),param_grid = tuned_parameters,cv=5)
     gsearch.fit(dataset)
     return gsearch.best_params_
@@ -192,23 +195,23 @@ def calculateSC(dataset, result):
 
 def Kmeans_cluster_ch(dataset):
     ch = []
-    for i in range(2,10):
+    for i in range(5,15):
         result_k = kMeans(i,dataset)
         ch.append(calculateCH(dataset,result_k))
-    x = range(2,10,1)
+    x = range(5,15,1)
     plot_validation(x,ch,"Cluster Size","CH")
 
 def Kmeans_cluster_sc(dataset):
     sc = []
-    for i in range(2,10):
+    for i in range(5,15):
         result_k = kMeans(i,dataset)
         sc.append(calculateSC(dataset, result_k))
-    x = range(2,10,1)
+    x = range(5,15,1)
     plot_validation(x,sc,"Cluster Size","SC")
 
 def Kmeans_iter_ch(dataset):
     ch = []
-    for i in range(300,800,100):
+    for i in range(500,1000,100):
         result_k = kMeans(9,dataset,i)
         ch.append(calculateCH(dataset,result_k))
     x = range(300,800,100)
@@ -216,7 +219,7 @@ def Kmeans_iter_ch(dataset):
 
 def Kmeans_iter_sc(dataset):
     sc = []
-    for i in range(300,800,100):
+    for i in range(500,1000,100):
         result_k = kMeans(9,dataset,i)
         sc.append(calculateSC(dataset,result_k))
     x = range(300,800,100)
@@ -233,21 +236,32 @@ def plot_validation(x,y,x_label,y_label):
 
 def hdbscan_param(dataset):
     score = 0
-    n = 0
-    for i in range(2,10):
-        result_h, validity_score = Hdbscan(i, dataset)
-        if validity_score > score:
-            score = validity_score
-            n = i
-    return n
+    min_size = 0
+    min_sample = 0
+    for i in range(5,50,5):
+        for j in range(5,50,5):
+            result_h, validity_score = Hdbscan(dataset,i,j)
+            if validity_score > score:
+                score = validity_score
+                min_size = i
+                min_sample = j
+    print("{'min_cluster_size': "+str(min_size)+" 'min_sample_size': "+str(min_sample)+" }")
 
 def hdbscan_cluster(dataset):
     score = []
-    for i in range(2,10):
-        result_h, validity_score = Hdbscan(i, dataset)
+    for i in range(7,50,7):
+        result_h, validity_score = Hdbscan(dataset, min_size = i)
         score.append(validity_score)
-    x = range(2,10,1)
+    x = range(7,50,7)
     plot_validation(x,score,"Min Cluster Size","Relative Validity")
+
+def hdbscan_sample(dataset):
+    score = []
+    for i in range(7,50,7):
+        result_h, validity_score = Hdbscan(dataset, min_sample = i)
+        score.append(validity_score)
+    x = range(7,50,7)
+    plot_validation(x,score,"Min Sample Size","Relative Validity")
 
 def calculateAri(result1, result2):
     ari = metrics.adjusted_rand_score(result1,result2)
