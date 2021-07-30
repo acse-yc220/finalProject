@@ -150,8 +150,8 @@ def randCent(dataset, k):
          centroids[:,i] = data_min + data_range * np.random.rand(k, 1)
      return centroids
 
-def kMeans(n, dataset,iter=1000):
-    cluster_k = KMeans(n_clusters=n, max_iter=iter,random_state=0).fit(dataset)
+def kMeans(n, dataset):
+    cluster_k = KMeans(n_clusters=n,random_state=0).fit(dataset)
     result_k = cluster_k.labels_
     return result_k
 
@@ -179,10 +179,15 @@ def plotResult(dataset, result):
     plt.show()
 
 def kmeans_param(dataset):
-    tuned_parameters = [{'n_clusters':np.arange(5,15,1),'max_iter':np.arange(500,1000,100), 'random_state':[0]}]
-    gsearch = GridSearchCV(estimator = KMeans(),param_grid = tuned_parameters,cv=5)
-    gsearch.fit(dataset)
-    return gsearch.best_params_
+    score = 0
+    cluster = 0
+    for i in range(5,15,1):
+        result_k = kMeans(i,dataset)
+        ch = calculateCH(dataset,result_k)
+        if ch >score:
+            score = ch
+            cluster = i
+    print("{'the best number of cluster': "+str(cluster)+" }")
 
 
 def calculateCH(dataset, result):
@@ -209,21 +214,21 @@ def Kmeans_cluster_sc(dataset):
     x = range(5,15,1)
     plot_validation(x,sc,"Cluster Size","SC")
 
-def Kmeans_iter_ch(dataset):
-    ch = []
-    for i in range(500,1000,100):
-        result_k = kMeans(9,dataset,i)
-        ch.append(calculateCH(dataset,result_k))
-    x = range(300,800,100)
-    plot_validation(x,ch,"Max Iteration","CH")
+# def Kmeans_iter_ch(dataset):
+#     ch = []
+#     for i in range(10,100,10):
+#         result_k = kMeans(9,dataset,i)
+#         ch.append(calculateCH(dataset,result_k))
+#     x = range(10,100,10)
+#     plot_validation(x,ch,"Max Iteration","CH")
 
-def Kmeans_iter_sc(dataset):
-    sc = []
-    for i in range(500,1000,100):
-        result_k = kMeans(9,dataset,i)
-        sc.append(calculateSC(dataset,result_k))
-    x = range(300,800,100)
-    plot_validation(x,sc,"Max Iteration","SC")
+# def Kmeans_iter_sc(dataset):
+#     sc = []
+#     for i in range(10,100,10):
+#         result_k = kMeans(9,dataset,i)
+#         sc.append(calculateSC(dataset,result_k))
+#     x = range(10,100,10)
+#     plot_validation(x,sc,"Max Iteration","SC")
 
 def plot_validation(x,y,x_label,y_label):
     plt.plot(x,y,color='b')
