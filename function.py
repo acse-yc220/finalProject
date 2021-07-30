@@ -15,6 +15,7 @@ from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
 from DBCV import DBCV
 from scipy.spatial.distance import euclidean
+from sklearn.metrics import f1_score   
 
 def plot_input(fig,axarr,i,j,value,color,label,vmin=np.nan,vmax=np.nan):
     if np.isnan(vmin):
@@ -178,7 +179,7 @@ def plotResult(dataset, result):
 # #plt.scatter(centroids[i][0],centroids[i][1],linewidth=3,s=300,marker='+',color='black')
     plt.show()
 
-def kmeans_param(dataset):
+def kmeans_param_ch(dataset):
     score = 0
     cluster = 0
     for i in range(5,15,1):
@@ -189,6 +190,22 @@ def kmeans_param(dataset):
             cluster = i
     print("{'the best number of cluster': "+str(cluster)+" }")
 
+def kmeans_param_sc(dataset):
+    score = 0
+    cluster = 0
+    for i in range(5,15,1):
+        result_k = kMeans(i,dataset)
+        ch = calculateSC(dataset,result_k)
+        if ch >score:
+            score = ch
+            cluster = i
+    print("{'the best number of cluster': "+str(cluster)+" }")
+
+def calculatef1(pred, true):
+    true_label = true['classes'].reshape(-1,1)  
+    predict_label = pred.reshape(-1,1)    
+    f1 = f1_score(true_label,predict_label, average='micro')
+    print("F1-score is: ",f1)
 
 def calculateCH(dataset, result):
     ch = metrics.calinski_harabasz_score(dataset, result)
