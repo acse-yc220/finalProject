@@ -21,20 +21,19 @@ def loadData(data_vp,data_vs,vsmask):
     vs[remove] = np.nan
     vpvs[remove] = np.nan
     vpvs_d[remove] = np.nan
-    poisson = (vpvs_d**2-2)/(vpvs_d**2-1)/2
-    data = np.concatenate((vp,vs,vpvs,vpvs_d,poisson,xy),axis=1)
+    data = np.concatenate((vp,vs,vpvs,vpvs_d,xy),axis=1)
     return data
 
 def showData(dataset):
     for i in range(len(dataset)):
         data_inf = np.isinf(dataset[i])
         dataset[i][data_inf] = np.nan
-    data_column = ['Vp','Vs','Vp*Vs','Vp/Vs','Poisson']
+    data_column = ['Vp','Vs','Vp*Vs','Vp/Vs']
     color_column = [cm.viridis_r,  cm.viridis_r, cm.magma_r, cm.magma_r, cm.magma_r]
-    fig=plt.figure(figsize=(15,15))
+    fig=plt.figure(figsize=(12,6))
     for i in range(dataset.shape[1]-2):
-        ax = fig.add_subplot(3,2,i+1)
-        a = ax.scatter(dataset[:,-2],dataset[:,-1],c=dataset[:,i],cmap=color_column[i],s=1)
+        ax = fig.add_subplot(2,2,i+1)
+        a = ax.scatter(dataset[:,-2],dataset[:,-1],c=dataset[:,i],cmap=color_column[i],s=3)
         ax.set_xlabel('x')
         ax.set_ylabel('z')
         cb = fig.colorbar(a,ax=ax)
@@ -59,10 +58,10 @@ def removenans(dataset):
 
 
 def showDistribution(dataset):
-    data_column = ['Vp','Vs','Vp*Vs','Vp/Vs','Poisson']
+    data_column = ['Vp','Vs','Vp*Vs','Vp/Vs']
    # dataset[:,3]=np.clip(dataset[:,3],None,2)
     for i in range(dataset.shape[1]-2):
-        ax = plt.subplot(3,2,i+1)
+        ax = plt.subplot(2,2,i+1)
         data_distribution = dataset[:,i]
         value = np.isfinite(data_distribution)
         ax.set_title(data_column[i])
@@ -71,8 +70,8 @@ def showDistribution(dataset):
     plt.show()
 
 def crossplot(dataset):
-    data_column = ['Vp','Vs','Vp*Vs','Vp/Vs','Poisson']
-    for i in range(4):
+    data_column = ['Vp','Vs','Vp*Vs','Vp/Vs']
+    for i in range(3):
         ax = plt.subplot(2,2,i+1)
         plt.scatter(dataset[:,0], dataset[:,i+1])
         ax.set_xlabel(data_column[0])
