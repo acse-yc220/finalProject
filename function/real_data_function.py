@@ -36,9 +36,11 @@ def showData(dataset):
         a = ax.scatter(dataset[:,-2],dataset[:,-1],c=dataset[:,i],cmap=color_column[i],s=3)
         ax.set_xlabel('x')
         ax.set_ylabel('z')
+        ax.set_title(data_column[i])
         cb = fig.colorbar(a,ax=ax)
         cb.set_label(data_column[i])
         ax.invert_yaxis()
+    plt.tight_layout()
     plt.show()
 
 def removenans(dataset):
@@ -98,8 +100,13 @@ def output(result, nan_list):
     return output
 
 def plotResult(dataset, result):
-    plt.scatter(dataset[:,-2],dataset[:,-1],c=result,cmap=plt.cm.RdYlBu)
+    fig, ax = plt.subplots(1)
+    p = ax.scatter(dataset[:,-2],dataset[:,-1],c=result,cmap=plt.cm.RdYlBu_r)
+    ax.set_xlabel('x')
+    ax.set_ylabel('z')
+    classes = np.unique(result)
     plt.gca().invert_yaxis()
+    fig.colorbar(p, ticks = classes)
     plt.show()
 
 def dbscan(dataset, eps=0.5,min_sample=10,leaf_size=30):

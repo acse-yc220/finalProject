@@ -2,11 +2,9 @@ from os import remove
 from hdbscan import validity
 from matplotlib import colors
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.cm as cm
-from matplotlib.colors import LogNorm
 from sklearn.preprocessing import StandardScaler
 import hdbscan
 from sklearn.cluster import KMeans, SpectralClustering, AgglomerativeClustering,DBSCAN
@@ -25,6 +23,7 @@ def plot_input(fig,axarr,i,j,value,color,label,vmin=np.nan,vmax=np.nan):
         cmap=color)
     axarr[i][j].set_xlabel('x')
     axarr[i][j].set_ylabel('z')
+    axarr[i][j].set_title(label)
     cb = fig.colorbar(a,ax=axarr[i][j])
     cb.set_label(label)
 
@@ -159,8 +158,13 @@ def input_deleteNan(input, nan_list):
 
 
 def plotResult(dataset, result):
-    plt.scatter(dataset[:,-2],dataset[:,-1],c=result,cmap=plt.cm.RdYlBu_r)
+    fig, ax = plt.subplots(1)
+    p = ax.scatter(dataset[:,-2],dataset[:,-1],c=result,cmap=plt.cm.RdYlBu_r)
+    ax.set_xlabel('x')
+    ax.set_ylabel('z')
+    classes = np.unique(result)
     plt.gca().invert_yaxis()
+    fig.colorbar(p, ticks = classes)
     plt.show()
 
 def Kmeans_cluster_scores(dataset):
@@ -189,7 +193,11 @@ def Kmeans_cluster_scores(dataset):
 def crossplot_result(dataset, result):
     fig, axarr = plt.subplots(1, 2, figsize=(12, 5))
     a=axarr[0].scatter(dataset[:,1],dataset[:,0],c=result,cmap=plt.cm.RdYlBu_r,s=1)
+    axarr[0].set_xlabel('vs')
+    axarr[0].set_ylabel('vp')
     b=axarr[1].scatter(dataset[:,0],dataset[:,3],c=result,cmap=plt.cm.RdYlBu_r,s=1)
+    axarr[1].set_xlabel('vp')
+    axarr[1].set_ylabel('vp/vs')
     cb = fig.colorbar(a,ax=axarr[1],ticks=np.arange(np.min(result),np.max(result)+1))
     plt.show()
 
@@ -319,7 +327,12 @@ def calculateVm(result1, result2):
 
 def plotInputData(input_data):
     x,y = np.meshgrid(input_data['x'],input_data['z'])
-    plt.scatter(x,y,c=input_data['classes'],cmap=plt.cm.RdYlBu_r)
+    fig, ax = plt.subplots(1)
+    p = ax.scatter(x,y,c=input_data['classes'],cmap=plt.cm.RdYlBu_r)
+    ax.set_xlabel('x')
+    ax.set_ylabel('z')
+    classes = np.unique(input_data['classes'])
+    fig.colorbar(p, ticks = classes)
     plt.gca().invert_yaxis()
     plt.show()
 
